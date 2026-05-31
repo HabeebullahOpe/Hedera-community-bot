@@ -353,6 +353,28 @@ client.on('messageReactionRemove', async (reaction, user) => {
   }
 });
 
+// Prefix command handler for !myrares, !mycollections, etc.
+client.on('messageCreate', async (message) => {
+  // Ignore bot messages and messages without prefix
+  if (message.author.bot || !message.content.startsWith('!')) return;
+
+  const args = message.content.slice(1).trim().split(/ +/);
+  const command = args.shift().toLowerCase();
+
+  try {
+    if (command === 'myrares') {
+      const prefixCommand = require('./commands/prefix/myrares');
+      await prefixCommand.execute(message, args, client);
+    } else if (command === 'mycollections') {
+      const prefixCommand = require('./commands/prefix/mycollections');
+      await prefixCommand.execute(message, args, client);
+    }
+  } catch (error) {
+    console.error(`❌ Error executing prefix command ${command}:`, error);
+    message.reply('❌ There was an error executing this command. Please try again later.').catch(console.error);
+  }
+});
+
 // Debug environment variables
 console.log('🔍 Environment check:');
 console.log('DISCORD_TOKEN exists:', !!process.env.DISCORD_TOKEN);

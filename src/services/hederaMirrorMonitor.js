@@ -1,6 +1,7 @@
 const axios = require('axios');
 const { EmbedBuilder } = require('discord.js');
 const { TOKEN_IDS } = require('../utils/constants');
+const { fetchNFTMetadata } = require('./hederaService');
 
 class HederaMirrorMonitor {
   constructor(client) {
@@ -189,17 +190,34 @@ class HederaMirrorMonitor {
       const serialNumbers = sales.map(sale => sale.serialNumber).sort((a, b) => a - b);
       const totalPrice = sales.reduce((sum, sale) => sum + sale.price, 0);
       const buyer = sales[0].buyer; // All sales in same transaction have same buyer
+      const seller = sales[0].seller;
       const quantity = sales.length;
 
       // Format serial numbers display
       const serialsDisplay = serialNumbers.map(serial => `#${serial}`).join(', ');
 
-      // Create embedded message
-      // TODO: Customize this sales notification for your community
+      // Try to fetch metadata and image for the first NFT
+      let imageUrl = null;
+      let nftName = null;
+      if (sales.length > 0) {
+        const firstSale = sales[0];
+        try {
+          const metadata = await fetchNFTMetadata(firstSale.tokenId || TOKEN_IDS[0], firstSale.serialNumber);
+          if (metadata) {
+            imageUrl = metadata.image || metadata.imageUrl || metadata.url;
+            nftName = metadata.name || `NFT #${firstSale.serialNumber}`;
+            console.log(`✅ Fetched metadata for NFT - Image: ${imageUrl}, Name: ${nftName}`);
+          }
+        } catch (metaError) {
+          console.warn(`⚠️ Could not fetch metadata for sale notification:`, metaError.message);
+        }
+      }
+
+      // Create enhanced embedded message
       const embed = new EmbedBuilder()
-        .setTitle('🎉 TOKEN SALE DETECTED! 🎉')
-        .setColor('#00ff40') // Customize this color for your brand
-        .setDescription(`${quantity} token${quantity > 1 ? 's have' : ' has'} been sold from the collection!`)
+        .setTitle(`🎨 ${nftName || 'NFT Sale'} Sold!`)
+        .setColor(0x00ff9d)
+        .setDescription(`**${quantity} token${quantity > 1 ? 's' : ''}** ${quantity > 1 ? 'have' : 'has'} been sold from the collection!`)
         .addFields(
           {
             name: '🎯 Token Serial Number(s)',
@@ -212,8 +230,13 @@ class HederaMirrorMonitor {
             inline: true
           },
           {
-            name: '👤 Buyer Account',
-            value: `\`${buyer}\``,
+            name: '👤 Seller',
+            value: `\`${seller.slice(0, 6)}...${seller.slice(-4)}\``,
+            inline: true
+          },
+          {
+            name: '🛒 Buyer',
+            value: `\`${buyer.slice(0, 6)}...${buyer.slice(-4)}\``,
             inline: true
           },
           {
@@ -227,8 +250,14 @@ class HederaMirrorMonitor {
         })
         .setTimestamp(timestamp);
 
+      // Add image if available
+      if (imageUrl) {
+        embed.setImage(imageUrl);
+        embed.setThumbnail(imageUrl);
+      }
+
       await channel.send({ embeds: [embed] });
-      console.log(`✅ Sale notification sent for ${quantity} token(s): ${serialsDisplay}`);
+      console.log(`✅ Sale notification sent for ${quantity} token(s): ${serialsDisplay}${imageUrl ? ' (with image)' : ''}`);
 
     } catch (error) {
       console.error('❌ Error sending sale notification:', error);

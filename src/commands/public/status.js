@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { getAllVerifiedUsers } = require('../../database/models/rules');
+const { getVerifiedWalletsByUser } = require('../../database/models/rules');
 const { getNFTData } = require('../../services/hederaService');
 
 module.exports = {
@@ -11,11 +11,7 @@ module.exports = {
     try {
       await interaction.deferReply({ ephemeral: true });
 
-      // Get all verified users to find this user
-      const verifiedUsers = await getAllVerifiedUsers();
-      const userVerifications = verifiedUsers.filter(user => 
-        user.user_id === interaction.user.id && user.guild_id === interaction.guildId
-      );
+      const userVerifications = await getVerifiedWalletsByUser(interaction.user.id, interaction.guildId);
 
       const statusEmbed = new EmbedBuilder()
         .setColor('#0099ff')

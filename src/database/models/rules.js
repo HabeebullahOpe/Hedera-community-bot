@@ -212,6 +212,32 @@ async function getAllVerifiedUsers() {
   }
 }
 
+async function getVerifiedWalletsByUser(userId, guildId) {
+  try {
+    if (isProduction) {
+      const result = await db.query(
+        'SELECT * FROM verified_users WHERE user_id = $1 AND guild_id = $2',
+        [userId, guildId]
+      );
+      return result.rows;
+    } else {
+      return new Promise((resolve, reject) => {
+        db.all(
+          'SELECT * FROM verified_users WHERE user_id = ? AND guild_id = ?',
+          [userId, guildId],
+          (err, rows) => {
+            if (err) reject(err);
+            else resolve(rows || []);
+          }
+        );
+      });
+    }
+  } catch (error) {
+    console.error('❌ Error getting verified wallets for user:', error);
+    throw error;
+  }
+}
+
 // Initialize tables on module load
 initializeRulesTable().catch(console.error);
 
@@ -333,6 +359,7 @@ module.exports = {
   getRulesByGuild,
   addVerifiedUser,
   getAllVerifiedUsers,
+  getVerifiedWalletsByUser,
   addGiveawayEntry,
   getGiveawayEntries,
   getUserGiveawayEntry,

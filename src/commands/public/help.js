@@ -78,6 +78,11 @@ module.exports = {
           name: '📊 Check Verification Status',
           value: 'Use `/status` anytime to check if your wallet is verified and see your current roles!',
           inline: true
+        },
+        {
+          name: '✨ Explore Your NFTs',
+          value: 'Use `/mynfts` to see your NFT holdings and `/myrare` to get a rarity-style summary of your wallet.',
+          inline: true
         }
       );
 
